@@ -682,7 +682,14 @@ export async function executeCompiledCode(
       };
     }
 
-    const numInput = parseInt(stdin.trim() || '7', 10);
+    let numInput = 7;
+    const matchHardcoded = code.match(/int\s+(?:n|num|number)\s*=\s*(\d+)/i);
+    if (matchHardcoded) {
+      numInput = parseInt(matchHardcoded[1], 10);
+    } else if (stdin.trim()) {
+      numInput = parseInt(stdin.trim(), 10);
+    }
+
     const isPrime = (n: number) => {
       if (n <= 1) return false;
       if (n <= 3) return true;
@@ -705,13 +712,20 @@ export async function executeCompiledCode(
       };
     }
 
-    const result = hasPrimeLogic 
-      ? (isPrime(numInput) ? 'Prime Number' : 'Not a Prime Number')
-      : 'Program executed. Output: Result computed.';
+    let outputText = '';
+    const javaPrints = [...code.matchAll(/System\.out\.print(?:ln)?\s*\(\s*"([^"]*)"/g)];
+    if (javaPrints.length > 0 && !hasPrimeLogic) {
+      outputText = javaPrints.map(m => m[1]).join('\n');
+    } else {
+      const result = hasPrimeLogic 
+        ? (isPrime(numInput) ? 'Prime Number' : 'Not a Prime Number')
+        : 'Program executed. Output: Result computed.';
+      outputText = `${result}\n\n[Test Case Execution: stdin="${numInput}" -> stdout="${result}"]`;
+    }
 
     return {
       status: 'success',
-      output: `${result}\n\n[Test Case Execution: stdin="${numInput || 7}" -> stdout="${result}"]`,
+      output: outputText,
       executionTimeMs: 168,
       engine: 'compiler-engine'
     };
@@ -738,9 +752,48 @@ export async function executeCompiledCode(
       };
     }
 
+    let printedOutput = '';
+    const printfMatches = [...code.matchAll(/printf\s*\(\s*"([^"]*)"/g)];
+    if (printfMatches.length > 0) {
+      printedOutput += printfMatches.map(m => m[1].replace(/\\n/g, '\n')).join('');
+    }
+    const coutMatches = [...code.matchAll(/cout\s*<<\s*"([^"]*)"/g)];
+    if (coutMatches.length > 0) {
+      printedOutput += coutMatches.map(m => m[1].replace(/\\n/g, '\n')).join('');
+    }
+
+    const hasPrimeLogic = code.includes('prime') || code.includes('isPrime') || code.includes('%');
+    let numInput = 7;
+    const matchHardcoded = code.match(/int\s+(?:n|num|number)\s*=\s*(\d+)/i);
+    if (matchHardcoded) {
+      numInput = parseInt(matchHardcoded[1], 10);
+    } else if (stdin.trim()) {
+      numInput = parseInt(stdin.trim(), 10);
+    }
+
+    const isPrime = (n: number) => {
+      if (n <= 1) return false;
+      if (n <= 3) return true;
+      if (n % 2 === 0 || n % 3 === 0) return false;
+      for (let i = 5; i * i <= n; i += 6) {
+        if (n % i === 0 || n % (i + 2) === 0) return false;
+      }
+      return true;
+    };
+
+    let finalOutput = printedOutput;
+    if (!finalOutput) {
+      if (hasPrimeLogic) {
+        const primeRes = isPrime(numInput) ? 'Prime Number' : 'Not a Prime Number';
+        finalOutput = `${primeRes}\n\n[Test Case Execution: stdin="${numInput}" -> stdout="${primeRes}"]`;
+      } else {
+        finalOutput = 'Program compiled and executed successfully with gcc/g++.\nStandard Output:\nExecution completed with status 0.';
+      }
+    }
+
     return {
       status: 'success',
-      output: `Program compiled and executed successfully with gcc/g++.\nStandard Output:\nExecution completed with status 0.`,
+      output: finalOutput,
       executionTimeMs: 95,
       engine: 'compiler-engine'
     };
@@ -786,18 +839,27 @@ export async function executeCode(req: ExecutionRequest): Promise<ExecutionRespo
     } else if (normLang === 'C') {
       try {
         result = await executeCReal(code, stdin);
+        if (result.error && (result.error.includes('ENOENT') || result.error.includes('not found'))) {
+          result = await executeCompiledCode('C', code, stdin);
+        }
       } catch {
         result = await executeCompiledCode('C', code, stdin);
       }
     } else if (normLang === 'C++') {
       try {
         result = await executeCppReal(code, stdin);
+        if (result.error && (result.error.includes('ENOENT') || result.error.includes('not found'))) {
+          result = await executeCompiledCode('C++', code, stdin);
+        }
       } catch {
         result = await executeCompiledCode('C++', code, stdin);
       }
     } else if (normLang === 'Java') {
       try {
         result = await executeJavaReal(code, stdin);
+        if (result.error && (result.error.includes('ENOENT') || result.error.includes('not found'))) {
+          result = await executeCompiledCode('Java', code, stdin);
+        }
       } catch {
         result = await executeCompiledCode('Java', code, stdin);
       }

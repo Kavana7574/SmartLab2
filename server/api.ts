@@ -331,7 +331,7 @@ apiRouter.post('/auth/student-login-step1', (req, res) => {
     const faceRow = db.prepare('SELECT id FROM face_templates WHERE usn = ?').get(cleanUsn) as any;
     if (!faceRow) {
       return res.status(400).json({
-        error: 'No registered face template found for this student. Please contact faculty for biometric enrollment.'
+        error: 'Face registration not completed. Contact faculty.'
       });
     }
 
@@ -387,7 +387,7 @@ apiRouter.post('/auth/student-login-step2', (req, res) => {
       if (!liveCheck.success) {
         return res.status(401).json({
           matched: false,
-          error: 'Face Verification Failed. The registered student could not be verified. Please try again.',
+          error: 'Face does not match. Please try again.',
           detail: liveCheck.reason
         });
       }
@@ -396,7 +396,7 @@ apiRouter.post('/auth/student-login-step2', (req, res) => {
     // Retrieve registered template
     const templateRow = db.prepare('SELECT template_data FROM face_templates WHERE usn = ?').get(cleanUsn) as { template_data: string } | undefined;
     if (!templateRow) {
-      return res.status(404).json({ error: 'No registered face template found for this student.' });
+      return res.status(404).json({ error: 'Face registration not completed. Contact faculty.' });
     }
 
     const registeredVector: number[] = JSON.parse(templateRow.template_data);
@@ -415,7 +415,7 @@ apiRouter.post('/auth/student-login-step2', (req, res) => {
       if (!liveFaceVector || !Array.isArray(liveFaceVector) || liveFaceVector.length !== 128) {
         return res.status(400).json({
           matched: false,
-          error: 'Face Verification Failed. The registered student could not be verified. Please try again.'
+          error: 'Face does not match. Please try again.'
         });
       }
       matchResult = compareFaceEmbeddings(liveFaceVector, registeredVector);
@@ -424,7 +424,7 @@ apiRouter.post('/auth/student-login-step2', (req, res) => {
     if (!matchResult.matched) {
       return res.status(401).json({
         matched: false,
-        error: 'Face Verification Failed. The registered student could not be verified. Please try again.',
+        error: 'Face does not match. Please try again.',
         similarity: matchResult.similarity,
         distance: matchResult.euclideanDistance
       });

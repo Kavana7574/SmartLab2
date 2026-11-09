@@ -4,19 +4,23 @@ import { api } from '../../services/api.ts';
 import { 
   FileCode2, 
   Terminal, 
+  HelpCircle,
   TrendingUp,
+  User as UserIcon,
   Sparkles
 } from 'lucide-react';
 import { AssignedLabsTab } from './AssignedLabsTab.tsx';
 import { CodingWorkspaceTab } from './CodingWorkspaceTab.tsx';
+import { AssignedQuizzesTab } from './AssignedQuizzesTab.tsx';
 import { MyProgressTab } from './MyProgressTab.tsx';
+import { MyProfileTab } from './MyProfileTab.tsx';
 import { UnauthorizedAccess } from '../common/UnauthorizedAccess.tsx';
 
 interface StudentDashboardProps {
   user: User;
 }
 
-export type StudentSection = 'labs' | 'workspace' | 'progress';
+export type StudentSection = 'labs' | 'workspace' | 'quizzes' | 'progress' | 'profile';
 
 export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
   // Strict Role Guard: Students only
@@ -98,7 +102,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
         setCurrentAssignment(assignRes.assignments[0]);
       }
     } catch (err) {
-      console.error('Failed to load student dashboard data:', err);
+      console.error('Failed to load assignments:', err);
     } finally {
       setIsLoading(false);
     }
@@ -108,7 +112,7 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
     loadData();
   }, []);
 
-  // When student clicks "Start Assignment" or opens lab from Section A:
+  // When student clicks "Start Assignment" or opens lab from Section 1:
   const handleStartAssignment = (assignment: Assignment) => {
     setCurrentAssignment(assignment);
     setActiveSection('workspace'); // Automatically transitions to coding workspace
@@ -117,20 +121,20 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
       
-      {/* 3 Main Sections Navigation Bar (Strictly Assigned Labs, Coding Workspace, My Progress) */}
+      {/* 5 Main Sections Navigation Bar (Requirement 6) */}
       <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex flex-wrap items-center gap-2 shadow-lg">
         
-        {/* Section A: Assigned Lab Works */}
+        {/* 1. Assigned Lab Works */}
         <button
           onClick={() => setActiveSection('labs')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
             activeSection === 'labs'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
           <FileCode2 className="w-4 h-4" />
-          <span>A. Assigned Lab Works</span>
+          <span>1. Assigned Lab Works</span>
           {assignments.length > 0 && (
             <span className="px-1.5 py-0.2 rounded-full bg-slate-950/60 text-[10px] font-mono">
               {assignments.length}
@@ -138,17 +142,17 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
           )}
         </button>
 
-        {/* Section B: Coding Workspace */}
+        {/* 2. Coding Workspace */}
         <button
           onClick={() => setActiveSection('workspace')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
             activeSection === 'workspace'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
           <Terminal className="w-4 h-4" />
-          <span>B. Coding Workspace</span>
+          <span>2. Coding Workspace</span>
           {currentAssignment && (
             <span className="px-2 py-0.5 rounded bg-blue-500/20 text-blue-200 text-[10px] font-mono hidden sm:inline">
               Lab {currentAssignment.lab_number}
@@ -156,17 +160,43 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
           )}
         </button>
 
-        {/* Section C: My Progress */}
+        {/* 3. Assigned Quizzes */}
+        <button
+          onClick={() => setActiveSection('quizzes')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            activeSection === 'quizzes'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span>3. Assigned Quizzes</span>
+        </button>
+
+        {/* 4. My Progress */}
         <button
           onClick={() => setActiveSection('progress')}
-          className={`flex items-center gap-2 px-5 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
             activeSection === 'progress'
               ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
           }`}
         >
           <TrendingUp className="w-4 h-4" />
-          <span>C. My Progress</span>
+          <span>4. My Progress</span>
+        </button>
+
+        {/* 5. My Profile */}
+        <button
+          onClick={() => setActiveSection('profile')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-bold transition cursor-pointer ${
+            activeSection === 'profile'
+              ? 'bg-blue-600 text-white shadow-md shadow-blue-600/30'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+          }`}
+        >
+          <UserIcon className="w-4 h-4" />
+          <span>5. My Profile</span>
         </button>
 
       </div>
@@ -178,23 +208,41 @@ export const StudentDashboard: React.FC<StudentDashboardProps> = ({ user }) => {
             assignments={assignments}
             onStartAssignment={handleStartAssignment}
             isLoading={isLoading}
+            onRefresh={loadData}
           />
         )}
 
         {activeSection === 'workspace' && (
           <CodingWorkspaceTab
             currentAssignment={currentAssignment}
-            onClearAssignment={() => setCurrentAssignment(null)}
-            onSubmissionSuccess={loadData}
+            onClearAssignment={() => {
+              setCurrentAssignment(null);
+              setActiveSection('labs');
+            }}
+            onSubmissionSuccess={() => {
+              loadData();
+              setActiveSection('progress');
+            }}
+          />
+        )}
+
+        {activeSection === 'quizzes' && (
+          <AssignedQuizzesTab
+            user={user}
           />
         )}
 
         {activeSection === 'progress' && (
           <MyProgressTab />
         )}
+
+        {activeSection === 'profile' && (
+          <MyProfileTab
+            user={user}
+          />
+        )}
       </div>
 
     </div>
   );
 };
-

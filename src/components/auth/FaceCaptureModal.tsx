@@ -159,24 +159,36 @@ export const FaceCaptureModal: React.FC<FaceCaptureModalProps> = ({
 
     // Simulation overrides for cross-identity testing
     if (testSimPersona === 'devika') {
-      finalVector = getDeterministicStudentFaceVector(18); // Devika
+      finalVector = getDeterministicStudentFaceVector(102); // Devika (seed 102)
     } else if (testSimPersona === 'kavana') {
-      finalVector = getDeterministicStudentFaceVector(25); // Kavana
+      finalVector = getDeterministicStudentFaceVector(101); // Kavana (seed 101)
     } else if (testSimPersona === 'kanika') {
-      finalVector = getDeterministicStudentFaceVector(22); // Kanika
+      finalVector = getDeterministicStudentFaceVector(103); // Kanika (seed 103)
     } else if (testSimPersona === 'chaitanya') {
-      finalVector = getDeterministicStudentFaceVector(15); // Chaitanya
+      finalVector = getDeterministicStudentFaceVector(104); // Chaitanya (seed 104)
     } else if (testSimPersona === 'impostor') {
       finalVector = getDeterministicStudentFaceVector(999); // Unknown Intruder
     } else if (testSimPersona === 'static_photo') {
       // Intentionally triggers liveness anti-spoofing failure
-      finalVector = getDeterministicStudentFaceVector(25);
+      finalVector = getDeterministicStudentFaceVector(101);
       isLivenessPassed = false;
       liveScore = 20;
     } else {
       // Real live camera capture
-      if (!analysis || !analysis.embeddingVector || !capturedPhoto) {
-        setLocalError('Please capture your face inside the frame first.');
+      if (!capturedPhoto) {
+        setLocalError(mode === 'register' ? 'Please click "Capture Face" first.' : 'Please click "Capture Photo" first.');
+        return;
+      }
+      if (!analysis || !analysis.embeddingVector) {
+        setLocalError(mode === 'register' ? 'No face detected. Please position your face correctly in the camera frame.' : 'No face detected. Please capture again.');
+        return;
+      }
+      if (!analysis.faceDetected) {
+        setLocalError(mode === 'register' ? 'No face detected. Please position your face correctly in the camera frame.' : 'No face detected. Please capture again.');
+        return;
+      }
+      if (!analysis.singleFace) {
+        setLocalError('Only one person should be visible.');
         return;
       }
       if (!analysis.isValid) {
@@ -215,7 +227,7 @@ export const FaceCaptureModal: React.FC<FaceCaptureModalProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <h3 className="text-base font-bold text-white">
-                  {mode === 'register' ? 'Compulsory Face Registration' : mode === 'reenroll' ? 'Authorized Face Re-Enrollment' : 'Mandatory Live Face Authentication'}
+                  {mode === 'register' ? 'Face Registration / Face Enrollment' : mode === 'reenroll' ? 'Authorized Face Re-Enrollment' : 'Face Authentication'}
                 </h3>
                 <span className="text-[11px] font-mono px-2 py-0.5 rounded bg-blue-500/20 text-blue-300 border border-blue-500/30">
                   {usn}
@@ -224,7 +236,7 @@ export const FaceCaptureModal: React.FC<FaceCaptureModalProps> = ({
               <p className="text-xs text-slate-400">
                 {studentName ? `Student: ${studentName} • ` : ''}
                 {mode === 'register' 
-                  ? 'First-time registration: Position face inside frame to generate your permanent 128-D template.' 
+                  ? 'First-time registration: Position face inside frame to generate and save your permanent 128-D template.' 
                   : 'Live matching against enrolled face template linked to this USN.'}
               </p>
             </div>
@@ -537,7 +549,7 @@ export const FaceCaptureModal: React.FC<FaceCaptureModalProps> = ({
                 className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs tracking-wide shadow-lg shadow-blue-600/30 transition cursor-pointer"
               >
                 <Camera className="w-4 h-4" />
-                <span>{mode === 'register' ? 'Capture Face Image' : 'Capture Live Face'}</span>
+                <span>{mode === 'register' ? 'Capture Face' : 'Capture Photo'}</span>
               </button>
             ) : (
               <>
@@ -559,7 +571,7 @@ export const FaceCaptureModal: React.FC<FaceCaptureModalProps> = ({
                   className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 disabled:opacity-40 text-white font-bold text-xs tracking-wide shadow-lg shadow-emerald-600/30 transition cursor-pointer"
                 >
                   <CheckCircle2 className="w-4 h-4" />
-                  <span>{mode === 'register' ? 'Confirm & Save Face Template' : 'Verify & Sign In'}</span>
+                  <span>{mode === 'register' ? 'Confirm Face' : 'Verify Face'}</span>
                 </button>
               </>
             )}

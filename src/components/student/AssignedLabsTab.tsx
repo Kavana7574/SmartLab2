@@ -16,12 +16,14 @@ interface AssignedLabsTabProps {
   assignments: Assignment[];
   onStartAssignment: (assignment: Assignment) => void;
   isLoading: boolean;
+  onRefresh?: () => void;
 }
 
 export const AssignedLabsTab: React.FC<AssignedLabsTabProps> = ({
   assignments,
   onStartAssignment,
-  isLoading
+  isLoading,
+  onRefresh
 }) => {
   if (isLoading) {
     return (

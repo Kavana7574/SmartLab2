@@ -63,7 +63,7 @@ export function compareFaceEmbeddings(
       euclideanDistance: 999,
       confidencePercent: 0,
       threshold: distanceThreshold,
-      reason: 'Face Verification Failed. The registered student could not be verified. Please try again.'
+      reason: 'Face does not match. Please try again.'
     };
   }
 
@@ -74,7 +74,7 @@ export function compareFaceEmbeddings(
       euclideanDistance: 999,
       confidencePercent: 0,
       threshold: distanceThreshold,
-      reason: 'Face Verification Failed. The registered student could not be verified. Please try again.'
+      reason: 'Face does not match. Please try again.'
     };
   }
 
@@ -107,6 +107,6 @@ export function compareFaceEmbeddings(
     euclideanDistance: Number(euclideanDistance.toFixed(4)),
     confidencePercent,
     threshold: distanceThreshold,
-    reason: matched ? undefined : 'Face Verification Failed. The registered student could not be verified. Please try again.'
+    reason: matched ? undefined : 'Face does not match. Please try again.'
   };
 }

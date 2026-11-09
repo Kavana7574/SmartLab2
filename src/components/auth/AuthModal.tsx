@@ -52,9 +52,11 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
   const [facultyPassword, setFacultyPassword] = useState('Faculty@123');
   const [showFacultyPassword, setShowFacultyPassword] = useState(false);
 
-  // Student Registration Fields (Requirement 1: Full Name, USN, Password, Confirm, Branch, Semester, Face Auth)
+  // Student Registration Fields (STAGE 1: Full Name, USN, Username, Password, Confirm Password, Email, Branch, Semester)
   const [regFullName, setRegFullName] = useState('');
   const [regUsn, setRegUsn] = useState('');
+  const [regUsername, setRegUsername] = useState('');
+  const [regEmail, setRegEmail] = useState('');
   const [regBranch, setRegBranch] = useState<Branch>('ISE');
   const [regSemester, setRegSemester] = useState<number>(5);
   const [regPassword, setRegPassword] = useState('');
@@ -165,12 +167,54 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     livenessData?: { livenessScore: number; challengePassed: boolean; method: string; timestamp: number }
   ) => {
     // Case A: First-time Registration Face Capture
+    // Case A: First-time Registration Face Capture
     if (faceModalMode === 'register') {
-      setRegCapturedVector(faceVector);
-      setRegCapturedPhoto(photoUrl);
-      setRegFaceQuality(qualityScore);
-      setShowFaceModal(false);
-      setSuccessMsg('Face captured successfully! Complete registration below.');
+      setIsLoading(true);
+      setFaceModalError(null);
+      try {
+        const cleanUsn = regUsn.trim().toUpperCase();
+        const cleanUsername = (regUsername.trim() || cleanUsn.toLowerCase());
+        const cleanEmail = (regEmail.trim() || `${cleanUsn.toLowerCase()}@smartlab.edu`);
+
+        if (!regFullName.trim() || !cleanUsn || !regPassword) {
+          throw new Error('Full Name, USN, and Password are required for registration.');
+        }
+
+        const res = await api.studentRegister({
+          fullName: regFullName.trim(),
+          usn: cleanUsn,
+          username: cleanUsername,
+          password: regPassword,
+          confirmPassword: regConfirmPassword,
+          email: cleanEmail,
+          branch: regBranch,
+          semester: regSemester,
+          faceVector: faceVector,
+          qualityScore: qualityScore
+        });
+
+        setRegCapturedVector(faceVector);
+        setRegCapturedPhoto(photoUrl);
+        setRegFaceQuality(qualityScore);
+        setShowFaceModal(false);
+        // Display "Face Registration Successful"
+        setSuccessMsg(res.message || 'Face Registration Successful');
+
+        // Navigate to student login with prefilled credentials
+        setTimeout(() => {
+          setActiveMode('student_login');
+          setStudentUsn(cleanUsn);
+          setStudentPassword(regPassword);
+          setStudentBranch(regBranch);
+          setStudentSemester(regSemester);
+        }, 1200);
+      } catch (err: any) {
+        const errorText = err.message || 'Face registration failed.';
+        setFaceModalError(errorText);
+        setErrorMsg(errorText);
+      } finally {
+        setIsLoading(false);
+      }
       return;
     }
 
@@ -192,7 +236,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       });
 
       if (res.token) {
-        setSuccessMsg('Face matched and liveness verified! Opening Student Dashboard...');
+        setSuccessMsg('Face Authentication Successful');
         setShowFaceModal(false);
         setTimeout(() => {
           onAuthSuccess(res.user);
@@ -200,8 +244,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
         }, 500);
       }
     } catch (err: any) {
-      // Step 7: "Face Verification Failed. The registered student could not be verified. Please try again."
-      const errorText = err.message || 'Face Verification Failed. The registered student could not be verified. Please try again.';
+      const errorText = (err.message && (err.message.includes('Face Verification Failed') || err.message.includes('not match')))
+        ? 'Face does not match. Please try again.'
+        : (err.message || 'Face does not match. Please try again.');
       setFaceModalError(errorText);
       setErrorMsg(errorText);
     } finally {
@@ -218,6 +263,8 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
     setSuccessMsg(null);
 
     const cleanUsn = regUsn.trim().toUpperCase();
+    const cleanUsername = (regUsername.trim() || cleanUsn.toLowerCase());
+    const cleanEmail = (regEmail.trim() || `${cleanUsn.toLowerCase()}@smartlab.edu`);
 
     if (!regFullName.trim() || !cleanUsn || !regPassword) {
       setErrorMsg('Full Name, USN, Password, Branch, and Semester are required.');
@@ -236,7 +283,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
 
     // Compulsory Face Registration Check
     if (!regCapturedVector || regCapturedVector.length !== 128) {
-      setErrorMsg('Face registration is compulsory. Please click "Capture Live Face" to register your face template.');
+      setErrorMsg('Face registration is compulsory. Please click "Capture Face" to register your face template.');
       return;
     }
 
@@ -250,10 +297,10 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       const res = await api.studentRegister({
         fullName: regFullName.trim(),
         usn: cleanUsn,
-        username: cleanUsn.toLowerCase(),
+        username: cleanUsername,
         password: regPassword,
         confirmPassword: regConfirmPassword,
-        email: `${cleanUsn.toLowerCase()}@smartlab.edu`,
+        email: cleanEmail,
         branch: regBranch,
         semester: regSemester,
         faceVector: regCapturedVector,
@@ -261,7 +308,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
       });
 
       // Display "Face Registration Successful"
-      setSuccessMsg(res.message || 'Face Registration Successful. Your account and biometric template have been securely linked to your USN.');
+      setSuccessMsg(res.message || 'Face Registration Successful');
       
       // Navigate to student login with prefilled details
       setTimeout(() => {
@@ -609,7 +656,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                   className="w-full mt-2 flex items-center justify-center gap-2 py-3.5 rounded-xl bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs tracking-wider transition cursor-pointer shadow-lg shadow-blue-600/30"
                 >
                   <ScanFace className="w-4 h-4" />
-                  <span>Proceed to Live Face Authentication</span>
+                  <span>Continue</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
@@ -672,10 +719,56 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                       type="text"
                       required
                       value={regUsn}
-                      onChange={(e) => setRegUsn(e.target.value)}
+                      onChange={(e) => {
+                        const val = e.target.value.toUpperCase();
+                        setRegUsn(val);
+                        if (!regUsername || regUsername === regUsn.toLowerCase()) {
+                          setRegUsername(val.toLowerCase());
+                        }
+                        if (!regEmail || regEmail === `${regUsn.toLowerCase()}@smartlab.edu`) {
+                          setRegEmail(`${val.toLowerCase()}@smartlab.edu`);
+                        }
+                      }}
                       placeholder="e.g. 1MS22IS025"
                       className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono uppercase"
                     />
+                  </div>
+                </div>
+
+                {/* Username & Email */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Username <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <UserIcon className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                      <input
+                        type="text"
+                        required
+                        value={regUsername}
+                        onChange={(e) => setRegUsername(e.target.value.toLowerCase())}
+                        placeholder="e.g. 1ms22is025"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono lowercase"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-300 mb-1">
+                      Email Address <span className="text-rose-400">*</span>
+                    </label>
+                    <div className="relative">
+                      <Mail className="w-4 h-4 text-slate-500 absolute left-3 top-3" />
+                      <input
+                        type="email"
+                        required
+                        value={regEmail}
+                        onChange={(e) => setRegEmail(e.target.value)}
+                        placeholder="e.g. kavana@smartlab.edu"
+                        className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-9 pr-3 py-2.5 text-xs text-white placeholder-slate-600 focus:outline-none focus:border-blue-500"
+                      />
+                    </div>
                   </div>
                 </div>
 
@@ -755,13 +848,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                   </div>
                 </div>
 
-                {/* Compulsory Face Authentication Registration Section */}
+                {/* Face Registration / Face Enrollment Section */}
                 <div className="p-3.5 bg-slate-950 border border-slate-800 rounded-xl space-y-2.5">
                   <div className="flex items-center justify-between">
                     <div>
                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
                         <ScanFace className="w-4 h-4 text-blue-400" />
-                        Face Authentication Registration (Compulsory)
+                        Face Registration / Face Enrollment
                       </span>
                       <p className="text-[11px] text-slate-400 mt-0.5">
                         Live camera face capture is required to link a permanent 128-D biometric template to your USN.
@@ -782,14 +875,19 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                   <div className="flex items-center gap-3">
                     {regCapturedPhoto && (
                       <div className="w-12 h-12 rounded-lg overflow-hidden border border-emerald-500/50 shrink-0">
-                        <img src={regCapturedPhoto} alt="Captured" className="w-full h-full object-cover scale-x-[-1]" />
+                        <img src={regCapturedPhoto} alt="Captured Face" className="w-full h-full object-cover scale-x-[-1]" />
                       </div>
                     )}
                     <button
                       type="button"
                       onClick={() => {
-                        if (!regUsn.trim()) {
-                          setErrorMsg('Please enter your USN before capturing your face.');
+                        const cleanUsn = regUsn.trim().toUpperCase();
+                        if (!regFullName.trim() || !cleanUsn || !regPassword) {
+                          setErrorMsg('Please enter Full Name, USN, and Password before capturing your face.');
+                          return;
+                        }
+                        if (regPassword !== regConfirmPassword) {
+                          setErrorMsg('Passwords do not match.');
                           return;
                         }
                         setErrorMsg(null);
@@ -804,7 +902,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onAuthSuc
                       }`}
                     >
                       <Camera className="w-4 h-4" />
-                      <span>{regCapturedVector ? 'Recapture Face Photo' : 'Capture Live Face for Registration'}</span>
+                      <span>{regCapturedVector ? 'Retake Photo' : 'Capture Face'}</span>
                     </button>
                   </div>
 

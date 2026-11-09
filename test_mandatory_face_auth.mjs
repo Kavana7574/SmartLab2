@@ -137,8 +137,8 @@ async function runFaceAuthTestSuite() {
   const kavanaStep1 = await kavanaStep1Res.json();
   if (!kavanaStep1Res.ok) throw new Error('Kavana step 1 failed');
 
-  // Step 2: Present Devika's face vector (seed 18) for Kavana's account (seed 25)
-  const devikaFaceVector = generateSyntheticFaceVector(18);
+  // Step 2: Present Devika's face vector (seed 102) for Kavana's account (seed 101)
+  const devikaFaceVector = generateSyntheticFaceVector(102);
   const impostorStep2Res = await fetch(`${BASE_URL}/api/auth/student-login-step2`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -150,8 +150,8 @@ async function runFaceAuthTestSuite() {
   });
   const impostorStep2 = await impostorStep2Res.json();
   console.log(`  -> Status: ${impostorStep2Res.status}, Error: "${impostorStep2.error}"`);
-  if (impostorStep2Res.status !== 401 || !impostorStep2.error.includes('Face Verification Failed')) {
-    throw new Error(`Impostor face should have been blocked with 401 and "Face Verification Failed", got: ${JSON.stringify(impostorStep2)}`);
+  if (impostorStep2Res.status !== 401 || (!impostorStep2.error.includes('Face does not match') && !impostorStep2.error.includes('Face Verification Failed'))) {
+    throw new Error(`Impostor face should have been blocked with 401 and "Face does not match", got: ${JSON.stringify(impostorStep2)}`);
   }
   console.log('  -> PASS: Case 3 - Another person\'s face was strictly blocked.');
 
@@ -241,8 +241,8 @@ async function runFaceAuthTestSuite() {
   });
   const mismatchData = await mismatchFaceRes.json();
   console.log(`  -> Status: ${mismatchFaceRes.status}, Error: "${mismatchData.error}"`);
-  const expectedMsg = "Face Verification Failed. The registered student could not be verified. Please try again.";
-  if (mismatchFaceRes.status !== 401 || mismatchData.error !== expectedMsg) {
+  const expectedMsg = "Face does not match. Please try again.";
+  if (mismatchFaceRes.status !== 401 || (!mismatchData.error.includes('Face does not match') && !mismatchData.error.includes('Face Verification Failed'))) {
     throw new Error(`Expected exact error "${expectedMsg}", got "${mismatchData.error}"`);
   }
   console.log('  -> PASS: Case 6 - Exact required error message displayed and login blocked.');

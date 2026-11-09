@@ -535,7 +535,7 @@ public class PrimeNumber {
       ans: 'class'
     },
     {
-      q: 'Which is the starting method of a Java program?',
+      q: 'Which method is the starting point of a Java program?',
       opts: ['start()', 'run()', 'main()', 'execute()'],
       ans: 'main()'
     },
@@ -546,8 +546,8 @@ public class PrimeNumber {
     },
     {
       q: 'Which symbol is used to end a Java statement?',
-      opts: ['colon', 'comma', 'full stop', 'semicolon'],
-      ans: 'semicolon'
+      opts: [':', ',', '.', ';'],
+      ans: ';'
     },
     {
       q: 'Which keyword is used to create an object in Java?',

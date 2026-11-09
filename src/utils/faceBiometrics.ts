@@ -18,24 +18,35 @@ export async function startCameraStream(videoElement: HTMLVideoElement): Promise
     throw new Error('Camera API (navigator.mediaDevices.getUserMedia) is not supported in this browser.');
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: {
-      width: { ideal: 640 },
-      height: { ideal: 480 },
-      facingMode: 'user'
-    },
-    audio: false
-  });
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: 640 },
+        height: { ideal: 480 },
+        facingMode: 'user'
+      },
+      audio: false
+    });
 
-  videoElement.srcObject = stream;
-  await new Promise<void>((resolve) => {
-    videoElement.onloadedmetadata = () => {
-      videoElement.play();
-      resolve();
-    };
-  });
+    videoElement.srcObject = stream;
+    await new Promise<void>((resolve) => {
+      videoElement.onloadedmetadata = () => {
+        videoElement.play().then(resolve).catch(resolve);
+      };
+      // fallback in case onloadedmetadata has already fired
+      setTimeout(resolve, 500);
+    });
 
-  return stream;
+    return stream;
+  } catch (err: any) {
+    if (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError') {
+      throw new Error('Camera permission denied. Please allow camera access in your browser settings to proceed with face authentication.');
+    }
+    if (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError' || err.name === 'NotReadableError') {
+      throw new Error('Camera unavailable. Please connect a working camera device to proceed.');
+    }
+    throw new Error(err.message || 'Camera unavailable. Please connect a working camera device to proceed.');
+  }
 }
 
 export function stopCameraStream(stream: MediaStream | null) {
@@ -173,11 +184,11 @@ export function analyzeAndExtractFaceBiometrics(
   const singleFace = skinRatio < 0.90; // Not filling entire background or multiple faces
 
   if (!faceDetected) {
-    issues.push('No face detected in the frame. Please look directly into the camera.');
+    issues.push('No face detected. Please capture again.');
   } else if (!centered) {
     issues.push('Please center your face inside the face guidance frame.');
   } else if (!singleFace) {
-    issues.push('Multiple faces or irregular background detected. Ensure only one person is visible.');
+    issues.push('Only one person should be visible.');
   }
 
   // 4. Generate 128-Dimensional Biometric Embedding
